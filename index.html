@@ -86,7 +86,7 @@
       🏠 처음 화면으로 돌아가기
     </button>
 
-    <!-- 🎯 [시연용 프로토타입] 매장 NFC/QR 태그 시뮬레이션 박스 -->
+    <!-- [시연용 프로토타입] 매장 NFC/QR 태그 시뮬레이션 박스 -->
     <div class="bg-[#F0F4FF] p-3 rounded-2xl border border-[#D5E2FF] shadow-sm text-center">
       <div class="text-xs font-black text-[#5B82F6] mb-2 flex items-center justify-center gap-1">
         <span>⚙️</span>
@@ -275,18 +275,26 @@
       return result || '영';
     }
 
+    // 🎯 날짜 오프셋 파싱 고도화 (오늘, 내일, 모레, X일 뒤 등)
     function parseSimpleDateText(input) {
       const text = String(input || "").trim();
       const d = new Date();
+      let addDays = 0;
 
       if (text.includes("내일")) {
-        d.setDate(d.getDate() + 1);
+        addDays = 1;
       } else if (text.includes("모레")) {
-        d.setDate(d.getDate() + 2);
+        addDays = 2;
       } else if (text.includes("글피")) {
-        d.setDate(d.getDate() + 3);
+        addDays = 3;
+      } else {
+        const dayMatch = text.match(/(\d{1,2})\s*일\s*(뒤|후)?/);
+        if (dayMatch) {
+          addDays = parseInt(dayMatch[1], 10);
+        }
       }
-      
+
+      d.setDate(d.getDate() + addDays);
       return `${d.getMonth() + 1}월 ${d.getDate()}일`;
     }
 
@@ -578,7 +586,6 @@
       speak("예매하기, 키오스크 주문, 기타 문의 중 원하시는 버튼을 눌러주세요.");
     }
 
-    // 🎯 [시연용 NFC 태그 클릭 시뮬레이션]
     function simulateNfcTag(fullStoreName) {
       speak(`${fullStoreName} NFC 태그가 인식되었습니다.`);
       renderCSVBrandMenu("메가커피");
@@ -897,6 +904,7 @@
       };
     }
 
+    // 🎯 버스 예매 처리 시 전체 음성 input을 그대로 넘기도록 수정
     async function handleBusApiBooking(inputText) {
       document.getElementById('aiStatus').innerText = "🚌 고속버스 정보 확인 중...";
       speak("고속버스 운행 정보를 확인하고 있습니다.");
@@ -1038,8 +1046,7 @@
         }
         if (input.includes("버스") || input.includes("기차") || input.includes("표")) {
           currentStep = "BUS_ASK_ROUTE";
-          speak("어디로 가는 버스를 예매할까요? 출발지와 목적지, 시간을 말씀해 주세요.");
-          showGuideText("🚌 '내일 오후 2시 서울에서 부산'처럼 말씀해 주세요.");
+          handleBusApiBooking(input);
           return;
         }
       }
@@ -1248,7 +1255,7 @@
                 <div class="text-sm font-bold text-gray-700 mt-1">${selectedData.brand || '매장'} 주문 번호표</div>
                 <div class="text-6xl font-black text-red-600 tracking-wider my-2 bg-white p-3 rounded-2xl border-2 border-red-300 shadow-inner">${orderNum}번</div>
                 <p class="text-xs font-bold text-rose-950 leading-relaxed bg-white p-2.5 rounded-xl border border-rose-200">
-                  📢 매장 화면에 <span class="text-red-600 font-black text-sm">${orderNum}번</span>이 떠오르면<br>음식을 받으러 가시면 됩니다!
+                  📢 매장 화면에 <span class="text-red-600 font-black text-sm">${orderNum}번</span>이 떠오르면<br>음식을 받으러 가하시면 됩니다!
                 </p>
                 <button onclick="goHome()" class="mt-2 bg-rose-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow w-full">홈으로 가기</button>
               </div>
