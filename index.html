@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>쉬운 세상 - 사랑을 잇는 세상 연결 도우미</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tesseract.js (카메라 OCR) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <link rel="stylesheet" href="style.css?v=3.0">
+</head>
+<body class="bg-[#FFF9F9] min-h-screen flex flex-col justify-between p-4 max-w-md mx-auto border-x border-[#F5E6E6] relative shadow-2xl">
+
+  <!-- [상단 헤더] -->
+  <header class="bg-gradient-to-r from-rose-400 via-rose-500 to-amber-400 p-4 rounded-3xl text-center shadow-sm flex justify-between items-center border border-rose-300">
+    <div class="text-left cursor-pointer" onclick="goHome()">
+      <span class="text-[11px] bg-rose-950 text-rose-100 px-2.5 py-0.5 rounded-full font-bold tracking-wider">❤️ 사랑을 잇는 AI 도우미</span>
+      <h1 class="text-2xl font-black text-rose-950 mt-0.5 tracking-tight">쉬운 세상 🏠</h1>
+    </div>
+    <div id="userInfoHeader" class="text-xs font-bold text-rose-950 flex items-center gap-2 hidden">
+      <span class="bg-rose-100/90 border border-rose-300 px-3 py-1.5 rounded-xl text-xs font-black shadow-sm"><span id="headerUserName"></span> 님</span>
+      <button onclick="resetRegistration()" class="bg-rose-950 hover:bg-rose-900 text-rose-100 text-xs px-2.5 py-1.5 rounded-xl font-bold shadow">
+        ↺ 다시 가입
+      </button>
+    </div>
+  </header>
+
+  <!-- [메인 상태 및 AI 음성 안내판] -->
+  <main class="flex-1 flex flex-col justify-between my-3 gap-3">
+    
+    <div class="bg-white p-4 rounded-3xl border-2 border-rose-300/80 shadow-sm text-center flex flex-col justify-center min-h-[110px] relative">
+      <div class="flex justify-between items-center mb-1">
+        <span id="aiStatus" class="text-xs font-black text-rose-800 tracking-wider">📢 사랑의 스마트 도우미 준비완료</span>
+        
+        <!-- 음소거 토글 버튼 -->
+        <button id="muteBtn" onclick="toggleMute()" class="text-xs bg-rose-100 hover:bg-rose-200 border border-rose-300 px-2.5 py-1 rounded-xl font-black text-rose-950 flex items-center gap-1 transition-all shadow-sm">
+          <span id="muteIcon" class="text-sm">🔊</span>
+          <span id="muteText">소리 켬</span>
+        </button>
+      </div>
+      <div id="aiResponse" class="text-xl font-black text-gray-900 leading-snug break-keep">
+        "반갑습니다! 마음을 전하는 쉬운 세상을 시작합니다."
+      </div>
+    </div>
+
+    <!-- 동적 컨텐츠 영역 -->
+    <div id="dynamicArea" class="bg-white p-4 rounded-3xl border border-rose-200 shadow-sm flex-1 flex flex-col justify-between overflow-y-auto min-h-[300px]">
+      <div id="dynamicContent" class="w-full h-full flex flex-col justify-center items-center">
+        <!-- 스크립트로 동적 렌더링 -->
+      </div>
+    </div>
+
+    <!-- [안전장치] 최종 결제 확인 레이아웃 -->
+    <div id="confirmationBox" class="hidden bg-white p-5 rounded-3xl border-2 border-gray-200 shadow-2xl flex flex-col justify-between">
+      <h2 class="text-2xl font-black text-gray-900 mb-3 tracking-tight">최종 결제 확인</h2>
+      
+      <div class="bg-[#FFFBF0] border border-[#F2E6CD] p-5 rounded-2xl mb-6 shadow-sm flex flex-col justify-between min-h-[140px]">
+        <div>
+          <div id="confirmTitle" class="text-lg font-black text-gray-900 leading-tight mb-1">[메가커피 (강남역점)]</div>
+          <div id="confirmDetail" class="text-base font-bold text-gray-800 leading-snug">아이스커피. 1잔</div>
+        </div>
+        <div id="confirmPrice" class="text-3xl font-black text-[#E5672A] text-right mt-3">2,000원</div>
+      </div>
+
+      <div class="flex flex-col gap-2.5">
+        <button onclick="executePayment()" class="w-full bg-[#3B6634] hover:bg-[#2F532A] text-white font-black text-xl py-4 rounded-2xl shadow-md transition-all active:scale-95">
+          네, 결제해 주세요
+        </button>
+        <button onclick="cancelOrder()" class="w-full bg-[#6B7588] hover:bg-[#596273] text-white font-black text-xl py-4 rounded-2xl shadow-md transition-all active:scale-95">
+          취소하기
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- [하단 통합 스마트 컨트롤러] -->
+  <footer class="flex flex-col gap-2">
+    <button id="micBtn" onclick="toggleSpeech()" class="w-full bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-700 hover:to-rose-800 text-white py-5 rounded-3xl font-black text-2xl shadow-lg flex items-center justify-center gap-3 transition-transform active:scale-95 pulse-animation border border-rose-500">
+      <span id="micIcon" class="text-4xl">🎤</span>
+      <span id="micText">눌러서 말하기</span>
+    </button>
+
+    <button onclick="goHome()" id="homeBtn" class="hidden w-full bg-rose-950 text-rose-100 py-3.5 rounded-2xl font-black text-base shadow-md">
+      🏠 처음 화면으로 돌아가기
+    </button>
+
+    <!-- 🎯 [시연용 프로토타입] 매장 NFC/QR 태그 시뮬레이션 박스 -->
+    <div class="bg-[#F0F4FF] p-3 rounded-2xl border border-[#D5E2FF] shadow-sm text-center">
+      <div class="text-xs font-black text-[#5B82F6] mb-2 flex items-center justify-center gap-1">
+        <span>⚙️</span>
+        <span>매장 NFC/QR 태그 시뮬레이션</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="simulateNfcTag('메가커피 (강남역점)')" class="bg-[#5C86F6] hover:bg-[#4872E3] text-white font-extrabold text-sm py-2.5 rounded-xl shadow-sm transition-all active:scale-95">
+          메가커피 강남역점
+        </button>
+        <button onclick="openQrScanner()" class="bg-[#5C86F6] hover:bg-[#4872E3] text-white font-extrabold text-sm py-2.5 rounded-xl shadow-sm transition-all active:scale-95">
+          QR 스캔
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- [모달: 카드 카메라 스캐너] -->
+  <div id="cardScanModal" class="hidden fixed inset-0 bg-black/80 z-50 flex flex-col justify-center items-center p-4">
+    <div class="bg-white p-5 rounded-3xl w-full max-w-xs text-center relative overflow-hidden border border-rose-200 shadow-2xl">
+      <h3 class="text-xl font-black mb-1 text-gray-900">📷 카드 카메라 스캔</h3>
+      <p class="text-xs font-bold text-gray-600 mb-3">상자 안에 실제 신용카드를 비춰주세요</p>
+      
+      <div class="w-60 h-36 bg-black mx-auto rounded-2xl border-4 border-rose-400 relative overflow-hidden flex flex-col items-center justify-center text-white shadow-inner">
+        <video id="cardCameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+        <div class="scanner-line absolute w-full h-1 bg-rose-400 shadow-lg pointer-events-none"></div>
+      </div>
+      <canvas id="cardCanvas" class="hidden"></canvas>
+
+      <div id="scanStatusText" class="text-xs font-bold text-rose-800 mt-2">🔍 카메라 연결 중...</div>
+
+      <div class="mt-4 flex flex-col gap-2">
+        <button onclick="captureAndProcessCardOCR()" class="w-full bg-rose-600 text-white font-black py-2.5 rounded-xl text-sm shadow">
+          📷 촬영하여 카드 인식하기
+        </button>
+        <div class="flex gap-2">
+          <button onclick="simulateCardScanSuccess()" class="flex-1 bg-rose-800 text-white font-bold py-2 rounded-lg text-xs">
+            시연용 샘플채우기
+          </button>
+          <button onclick="closeCardScanner()" class="bg-gray-400 text-white font-bold px-3 py-2 rounded-lg text-xs">
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- [모달: QR 코드 스캐너] -->
+  <div id="qrScanModal" class="hidden fixed inset-0 bg-black/80 z-50 flex flex-col justify-center items-center p-4">
+    <div class="bg-white p-5 rounded-3xl w-full max-w-xs text-center relative overflow-hidden border border-rose-200 shadow-2xl">
+      <h3 class="text-xl font-black mb-1 text-gray-900">📷 QR 코드 스캔</h3>
+      <p class="text-xs font-bold text-gray-600 mb-3">매장의 QR 코드를 카메라에 비춰주세요</p>
+      
+      <div class="w-52 h-52 bg-black mx-auto rounded-2xl border-4 border-[#5C86F6] relative overflow-hidden flex flex-col items-center justify-center text-white shadow-inner">
+        <video id="qrCameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+        <div class="scanner-line absolute w-full h-1 bg-[#5C86F6] shadow-lg pointer-events-none"></div>
+      </div>
+
+      <div id="qrScanStatusText" class="text-xs font-bold text-indigo-800 mt-2">🔍 QR 코드를 인식하는 중...</div>
+
+      <div class="mt-4 flex flex-col gap-2">
+        <button onclick="simulateQrRecognized('메가커피')" class="w-full bg-[#5C86F6] text-white font-black py-2.5 rounded-xl text-sm shadow">
+          ⚡ [시연용] 메가커피 QR 인식 완료
+        </button>
+        <button onclick="closeQrScanner()" class="bg-gray-400 text-white font-bold px-3 py-2 rounded-lg text-xs">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="menu_data.js"></script>
+  <script src="kbo_schedule.js"></script>
+  <script src="bus.js"></script>
+
+  <script>
+    let userProfile = JSON.parse(localStorage.getItem('user_profile_v1')) || null;
+    let orderHistory = JSON.parse(localStorage.getItem('order_history_v1')) || [];
+    let isListening = false;
+    let isMuted = false;
+    let currentStep = "HOME";
+    let selectedData = {};
+    let cart = [];
+    let cameraStream = null;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition;
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.lang = 'ko-KR';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        stopSpeech();
+        isListening = true;
+        document.getElementById('micBtn').classList.add('bg-rose-900');
+        document.getElementById('micText').innerText = "듣고 있습니다...";
+        document.getElementById('aiStatus').innerText = "🎤 말씀 듣는 중...";
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        document.getElementById('micBtn').classList.remove('bg-rose-900');
+        document.getElementById('micText').innerText = "눌러서 말하기";
+        document.getElementById('aiStatus').innerText = "📢 사랑의 스마트 도우미 준비완료";
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        processVoiceCommand(transcript);
+      };
+    }
+
+    function toggleSpeech() {
+      if (!recognition) {
+        alert("이 브라우저는 음성 인식을 지원하지 않습니다. 크롬 브라우저를 이용해 주세요.");
+        return;
+      }
+      if (isListening) recognition.stop();
+      else recognition.start();
+    }
+
+    function stopSpeech() {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      const iconEl = document.getElementById('muteIcon');
+      const textEl = document.getElementById('muteText');
+      const btnEl = document.getElementById('muteBtn');
+
+      if (isMuted) {
+        stopSpeech();
+        iconEl.innerText = "🔇";
+        textEl.innerText = "음소거 중";
+        btnEl.classList.remove('bg-rose-100', 'text-rose-950');
+        btnEl.classList.add('bg-gray-700', 'text-white');
+      } else {
+        iconEl.innerText = "🔊";
+        textEl.innerText = "소리 켬";
+        btnEl.classList.remove('bg-gray-700', 'text-white');
+        btnEl.classList.add('bg-rose-100', 'text-rose-950');
+      }
+    }
+
+    function speak(text, onEndCallback) {
+      document.getElementById('aiResponse').innerText = `"${text}"`;
+      stopSpeech();
+
+      if (isMuted) {
+        if (onEndCallback) onEndCallback();
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ko-KR';
+      utterance.rate = 0.85;
+      if (onEndCallback) utterance.onend = onEndCallback;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function numberToKorean(num) {
+      const units = ['', '십', '백', '천'];
+      const digits = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
+      
+      let str = String(num);
+      let result = '';
+      let len = str.length;
+
+      for (let i = 0; i < len; i++) {
+        let n = Number(str[i]);
+        let pos = len - 1 - i;
+        
+        if (n !== 0) {
+          if (n === 1 && pos > 0) {
+            result += units[pos];
+          } else {
+            result += digits[n] + units[pos];
+          }
+        }
+      }
+      return result || '영';
+    }
+
+    function parseSimpleDateText(input) {
+      const text = String(input || "").trim();
+      const d = new Date();
+
+      if (text.includes("내일")) {
+        d.setDate(d.getDate() + 1);
+      } else if (text.includes("모레")) {
+        d.setDate(d.getDate() + 2);
+      } else if (text.includes("글피")) {
+        d.setDate(d.getDate() + 3);
+      }
+      
+      return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+    }
+
+    window.onload = function() {
+      if (!userProfile) {
+        renderRegisterStep1();
+      } else {
+        updateHeaderUser();
+        goHome();
+      }
+    };
+
+    function updateHeaderUser() {
+      if (userProfile && userProfile.name) {
+        document.getElementById('headerUserName').innerText = userProfile.name;
+        document.getElementById('userInfoHeader').classList.remove('hidden');
+      }
+    }
+
+    function resetRegistration() {
+      localStorage.removeItem('user_profile_v1');
+      userProfile = null;
+      document.getElementById('userInfoHeader').classList.add('hidden');
+      renderRegisterStep1();
+    }
+
+    function renderRegisterStep1() {
+      currentStep = "REGISTER_1";
+      document.getElementById('aiStatus').innerText = "1단계: 마음 연결 정보 입력";
+      speak("안녕하세요! 쉬운 세상에 오신 것을 환영합니다. 성함과 전화번호를 입력하거나 말씀해 주세요.");
+
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="w-full text-left space-y-3">
+          <div class="text-base font-black text-rose-950 border-b-2 border-rose-300 pb-1">👤 사용자 정보 입력</div>
+          
+          <div>
+            <label class="block text-xs font-bold text-rose-900 mb-1">성함</label>
+            <input type="text" id="inputName" placeholder="예: 홍길동" class="w-full p-3 border-2 border-rose-400 rounded-xl text-lg font-black text-rose-950 focus:outline-none focus:border-rose-600 shadow-inner">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-rose-900 mb-1">휴대폰 번호 (전화 인증용)</label>
+            <input type="tel" id="inputPhone" placeholder="010-1234-5678" value="010-" class="w-full p-3 border-2 border-rose-400 rounded-xl text-lg font-black text-rose-950 focus:outline-none focus:border-rose-600 shadow-inner">
+          </div>
+
+          <button onclick="submitRegisterStep1()" class="w-full bg-rose-600 hover:bg-rose-700 text-white p-3.5 rounded-2xl font-black text-base shadow-md mt-2">
+            다음: 전화 본인인증 ➔
+          </button>
+        </div>
+      `;
+    }
+
+    function submitRegisterStep1(nameVal, phoneVal) {
+      const name = nameVal || document.getElementById('inputName').value.trim();
+      const phone = phoneVal || document.getElementById('inputPhone').value.trim();
+
+      if (!name) {
+        speak("성함을 입력하시거나 말씀해 주세요.");
+        return;
+      }
+
+      if (!phone || phone.length < 10) {
+        speak("전화 인증을 받으실 휴대폰 번호를 정확히 입력해 주세요.");
+        return;
+      }
+
+      selectedData.tempName = name;
+      selectedData.tempPhone = phone;
+      renderRegisterStep2ARS();
+    }
+
+    function renderRegisterStep2ARS() {
+      currentStep = "REGISTER_2";
+      document.getElementById('aiStatus').innerText = "2단계: ARS 전화 인증";
+      
+      const phoneText = selectedData.tempPhone || "휴대폰";
+      speak(`${selectedData.tempName} 님, ${phoneText} 번호로 전화를 겁니다. 전화를 받으신 후 1번을 누르고 완료라고 말씀해 주세요.`);
+
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="w-full text-center space-y-3">
+          <div class="text-6xl ars-ring my-2">📞</div>
+          <div class="text-base font-black text-rose-950">${selectedData.tempName} 님 (${selectedData.tempPhone})</div>
+          <div class="text-xs font-bold text-rose-800 bg-rose-100 p-2.5 rounded-xl border border-rose-300">
+            📲 휴대폰으로 걸려온 ARS 전화를 받으시고<br><span class="text-red-600 font-black">1번</span>을 누르신 뒤 아래 버튼을 누르세요.
+          </div>
+          <button onclick="completeARSAuth()" class="w-full bg-rose-600 text-white p-4 rounded-2xl font-black text-base shadow-md mt-2">
+            ✅ 전화 인증 완료했습니다
+          </button>
+        </div>
+      `;
+    }
+
+    function completeARSAuth() {
+      speak("안전하게 인증되었습니다. 카드를 카메라에 비추어 자동 인식하시거나 직접 등록해 주세요.");
+      renderRegisterStep3Card();
+    }
+
+    function renderRegisterStep3Card() {
+      currentStep = "REGISTER_3";
+      document.getElementById('aiStatus').innerText = "3단계: 카드 상세 등록";
+
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="w-full text-left space-y-2.5">
+          <div class="text-base font-black text-rose-950 border-b border-rose-200 pb-1">💳 카드 정보 입력</div>
+          
+          <button onclick="openCardScanner()" class="w-full bg-rose-800 hover:bg-rose-900 text-white p-3.5 rounded-2xl font-black text-base shadow-sm flex items-center justify-center gap-2 border border-rose-600">
+            <span>📷</span> 카드를 카메라로 자동 스캔하기
+          </button>
+
+          <div class="text-center text-xs font-bold text-gray-500 my-1">- 또는 직접 확인 -</div>
+
+          <div>
+            <label class="block text-[11px] font-extrabold text-rose-900 mb-0.5">카드 번호 (16자리)</label>
+            <input type="text" id="inputCardNo" placeholder="1234 - 5678 - 9012 - 3456" value="" class="w-full p-2.5 border-2 border-rose-300 rounded-xl text-base font-bold text-rose-950">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-extrabold text-rose-900 mb-0.5">유효기간 (MM/YY)</label>
+              <input type="text" id="inputCardExp" placeholder="08/28" value="" class="w-full p-2.5 border-2 border-rose-300 rounded-xl text-base font-bold text-rose-950 text-center">
+            </div>
+            <div>
+              <label class="block text-[11px] font-extrabold text-rose-900 mb-0.5">CVV/CVC (뒷3자리)</label>
+              <input type="password" id="inputCardCvv" placeholder="***" value="771" maxlength="3" class="w-full p-2.5 border-2 border-rose-300 rounded-xl text-base font-bold text-rose-950 text-center">
+            </div>
+          </div>
+          
+          <button onclick="finishRegistration()" class="w-full bg-rose-600 hover:bg-rose-700 text-white p-4 rounded-2xl font-black text-lg shadow-md mt-1">
+            🎉 카드 정보 확인 및 등록 완료
+          </button>
+        </div>
+      `;
+    }
+
+    async function openCardScanner() {
+      document.getElementById('cardScanModal').classList.remove('hidden');
+      document.getElementById('scanStatusText').innerText = "📷 카메라 켜는 중...";
+      speak("카메라 권한을 허용하신 후 신용카드를 상자 안에 맞춰주세요.");
+
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          const videoEl = document.getElementById('cardCameraVideo');
+          videoEl.srcObject = cameraStream;
+          document.getElementById('scanStatusText').innerText = "💳 카드를 맞추고 [촬영]을 눌러주세요";
+        } else {
+          throw new Error("카메라 미지원 브라우저");
+        }
+      } catch (err) {
+        document.getElementById('scanStatusText').innerText = "⚠️ 카메라를 연결할 수 없습니다. 시연용 샘플채우기를 누르세요.";
+      }
+    }
+
+    function closeCardScanner() {
+      if (cameraStream) {
+        try { cameraStream.getTracks().forEach(track => track.stop()); } catch(e){}
+        cameraStream = null;
+      }
+      document.getElementById('cardScanModal').classList.add('hidden');
+    }
+
+    async function captureAndProcessCardOCR() {
+      const videoEl = document.getElementById('cardCameraVideo');
+      const canvas = document.getElementById('cardCanvas');
+      
+      if (!videoEl || !videoEl.videoWidth) {
+        simulateCardScanSuccess();
+        return;
+      }
+
+      try {
+        canvas.width = videoEl.videoWidth;
+        canvas.height = videoEl.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+        document.getElementById('scanStatusText').innerText = "🔍 이미지에서 카드 번호 읽는 중...";
+        speak("카드 문자를 읽고 있습니다. 잠시만 기다려 주세요.");
+
+        if (typeof Tesseract !== 'undefined') {
+          const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+          const numbersOnly = text.replace(/[^0-9]/g, '');
+          const cardMatch = numbersOnly.match(/\d{16}/) || numbersOnly.match(/\d{15,16}/);
+          const expMatch = text.match(/(0[1-9]|1[0-2])\/([0-9]{2})/);
+
+          if (cardMatch) {
+            const raw = cardMatch[0];
+            document.getElementById('inputCardNo').value = `${raw.slice(0,4)}-${raw.slice(4,8)}-${raw.slice(8,12)}-${raw.slice(12,16)}`;
+          } else {
+            document.getElementById('inputCardNo').value = "5412-8890-1234-8821";
+          }
+
+          if (expMatch) {
+            document.getElementById('inputCardExp').value = expMatch[0];
+          } else {
+            document.getElementById('inputCardExp').value = "12/29";
+          }
+
+          closeCardScanner();
+          speak("카드 정보가 완벽하게 스캔되었습니다!");
+        } else {
+          simulateCardScanSuccess();
+        }
+      } catch (err) {
+        simulateCardScanSuccess();
+      }
+    }
+
+    function simulateCardScanSuccess() {
+      closeCardScanner();
+      const cardNoEl = document.getElementById('inputCardNo');
+      const cardExpEl = document.getElementById('inputCardExp');
+      const cardCvvEl = document.getElementById('inputCardCvv');
+
+      if (cardNoEl) cardNoEl.value = "5412-8890-1234-8821";
+      if (cardExpEl) cardExpEl.value = "12/29";
+      if (cardCvvEl) cardCvvEl.value = "309";
+      speak("카드 정보가 설정되었습니다.");
+    }
+
+    function finishRegistration() {
+      const cardNoEl = document.getElementById('inputCardNo');
+      const cardExpEl = document.getElementById('inputCardExp');
+      const cardCvvEl = document.getElementById('inputCardCvv');
+
+      const cardNo = cardNoEl ? cardNoEl.value.trim() : "8821";
+      const cardExp = cardExpEl ? cardExpEl.value.trim() : "12/29";
+      const cardCvv = cardCvvEl ? cardCvvEl.value.trim() : "309";
+
+      if (!cardNo || !cardExp || !cardCvv) {
+        speak("카드 번호, 유효기간, CVV 3자리를 모두 채워주세요.");
+        return;
+      }
+
+      document.getElementById('aiStatus').innerText = "🔍 카드 정보 확인 중...";
+      speak("입력하신 카드 정보를 따뜻하게 확인하고 있습니다.", () => {
+        setTimeout(() => {
+          userProfile = {
+            name: selectedData.tempName || (userProfile ? userProfile.name : "사용자"),
+            phone: selectedData.tempPhone || (userProfile ? userProfile.phone : "010-1234-5678"),
+            cardLast4: cardNo.slice(-4) || "8821",
+            cardExp: cardExp
+          };
+
+          localStorage.setItem('user_profile_v1', JSON.stringify(userProfile));
+          updateHeaderUser();
+          goHome();
+          speak(`카드 정보 등록이 완료되었습니다, ${userProfile.name} 님!`);
+        }, 1000);
+      });
+    }
+
+    function goHome() {
+      if (!userProfile) { renderRegisterStep1(); return; }
+
+      stopSpeech();
+      currentStep = "HOME";
+      selectedData = {};
+      cart = [];
+      hideConfirmation();
+      document.getElementById('homeBtn').classList.add('hidden');
+      document.getElementById('dynamicArea').classList.remove('hidden');
+      document.getElementById('aiStatus').innerText = "원하시는 기능 선택";
+
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="flex flex-col gap-3 w-full justify-center my-auto">
+          <button onclick="startVoiceBookingMode()" class="w-full bg-rose-600 hover:bg-rose-700 text-white p-5 rounded-3xl font-black text-2xl shadow-lg flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border-2 border-rose-400">
+            <div class="flex items-center gap-2">
+              <span class="text-3xl">🎫</span>
+              <span>예매하기</span>
+            </div>
+            <span class="text-xs font-bold text-rose-100">야구장 · 영화 · 식당 · 버스</span>
+          </button>
+
+          <button onclick="startNfcOrderMode()" class="w-full bg-[#3B7A3E] hover:bg-[#2F6332] text-white p-5 rounded-3xl font-black text-2xl shadow-lg flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform border-2 border-green-600">
+            <div class="flex items-center gap-2">
+              <span class="text-3xl">🖥️</span>
+              <span>키오스크 주문</span>
+            </div>
+            <span class="text-xs font-bold text-green-100">NFC 태그 또는 매장 주문</span>
+          </button>
+
+          <button onclick="startOtherInquiryMode()" class="w-full bg-slate-700 hover:bg-slate-800 text-white p-4 rounded-3xl font-black text-xl shadow-md flex items-center justify-center gap-2 active:scale-95 transition-transform border border-slate-500">
+            <span>💬</span>
+            <span>기타 문의</span>
+          </button>
+        </div>
+      `;
+      speak("예매하기, 키오스크 주문, 기타 문의 중 원하시는 버튼을 눌러주세요.");
+    }
+
+    // 🎯 [시연용 NFC 태그 클릭 시뮬레이션]
+    function simulateNfcTag(fullStoreName) {
+      speak(`${fullStoreName} NFC 태그가 인식되었습니다.`);
+      renderCSVBrandMenu("메가커피");
+    }
+
+    function startOtherInquiryMode() {
+      currentStep = "OTHER_INQUIRY";
+      document.getElementById('homeBtn').classList.remove('hidden');
+      document.getElementById('aiStatus').innerText = "💬 기타 문의";
+
+      speak("주문내역확인, 카드 재등록 등 원하는 것을 말씀해 주세요.");
+
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="w-full text-center space-y-4 py-3">
+          <div class="text-5xl pulse-animation inline-block p-3 bg-slate-100 rounded-full border-2 border-slate-400">💬</div>
+          <div class="text-base font-black text-slate-900">"주문 내역 확인" 또는 "카드 재등록"을 말씀해 주세요</div>
+          
+          <div class="grid grid-cols-2 gap-2 text-xs font-black pt-1">
+            <button onclick="processVoiceCommand('주문 내역 확인')" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 p-3 rounded-2xl text-slate-900 shadow-sm flex flex-col items-center gap-1">
+              <span class="text-2xl">📜</span>
+              <span>주문 내역 확인</span>
+            </button>
+            <button onclick="processVoiceCommand('카드 재등록')" class="bg-slate-100 hover:bg-slate-200 border border-slate-300 p-3 rounded-2xl text-slate-900 shadow-sm flex flex-col items-center gap-1">
+              <span class="text-2xl">💳</span>
+              <span>카드 재등록</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function showOrderHistory() {
+      currentStep = "SHOW_HISTORY";
+      document.getElementById('aiStatus').innerText = "📜 결제 내역 확인";
+
+      if (orderHistory.length === 0) {
+        document.getElementById('dynamicContent').innerHTML = `
+          <div class="text-center py-8">
+            <div class="text-5xl mb-2">📂</div>
+            <div class="text-lg font-black text-gray-800">최근 결제 내역이 없습니다.</div>
+          </div>
+        `;
+        speak("최근 결제하신 내역이 없습니다.");
+        return;
+      }
+
+      const historyHTML = orderHistory.map((item) => `
+        <div class="bg-rose-50/80 p-3 rounded-2xl border border-rose-200 text-left space-y-1 shadow-sm">
+          <div class="flex justify-between items-center text-xs text-rose-900 font-bold">
+            <span>${item.date}</span>
+            <span class="bg-rose-200 text-rose-950 px-2 py-0.5 rounded-full font-black">${item.brand}</span>
+          </div>
+          <div class="font-black text-sm text-gray-900">${item.detail}</div>
+          <div class="text-right font-black text-rose-600 text-sm">${item.price}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="w-full text-left space-y-2 max-h-[260px] overflow-y-auto">
+          <div class="font-black text-sm text-rose-950 border-b border-rose-200 pb-1">📜 최근 결제 내역 (${orderHistory.length}건)</div>
+          ${historyHTML}
+        </div>
+      `;
+
+      speak(`총 ${orderHistory.length}건의 결제 내역이 있습니다.`);
+    }
+
+    function startVoiceBookingMode() {
+      currentStep = "VOICE_START";
+      document.getElementById('homeBtn').classList.remove('hidden');
+      document.getElementById('aiStatus').innerText = "🎤 음성 예약 도우미";
+      speak("야구장, 영화, 식당, 버스 중 무엇을 예매할까요? 마이크를 누르고 편안하게 말씀해 주세요.");
+
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="w-full text-center space-y-4 py-4">
+          <div class="text-6xl pulse-animation inline-block p-4 bg-rose-100 rounded-full border-2 border-rose-400">🎤</div>
+          <div class="text-xl font-black text-rose-950">야구장, 영화, 식당, 버스를 말씀하세요</div>
+          
+          <div class="grid grid-cols-2 gap-2 text-xs font-black pt-1">
+            <button onclick="processVoiceCommand('야구장')" class="bg-rose-100 border border-rose-300 p-2.5 rounded-xl text-rose-950">⚾ 야구장 예매하기</button>
+            <button onclick="processVoiceCommand('영화')" class="bg-rose-100 border border-rose-300 p-2.5 rounded-xl text-rose-950">🎬 영화 예매하기</button>
+            <button onclick="processVoiceCommand('식당')" class="bg-rose-100 border border-rose-300 p-2.5 rounded-xl text-rose-950">🍽️ 식당 예약하기</button>
+            <button onclick="processVoiceCommand('버스')" class="bg-rose-100 border border-rose-300 p-2.5 rounded-xl text-rose-950">🚌 버스 예매하기</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function startNfcOrderMode() {
+      currentStep = "NFC_ASK_STORE";
+      document.getElementById('homeBtn').classList.remove('hidden');
+      document.getElementById('aiStatus').innerText = "📱 매장 확인 대기 중";
+      
+      speak("핸드폰을 매장의 엔에프씨 기기에 가까이 대주세요. 혹시 엔에프씨 태그를 못 찾겠다면 큐알 코드 라고 말씀해 주세요.");
+
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="w-full space-y-3 text-center py-2">
+          <div class="p-4 bg-green-100 border-2 border-green-500 rounded-3xl shadow-sm">
+            <div class="text-4xl mb-1">📲</div>
+            <div class="font-black text-lg text-green-950">매장의 NFC 기기에 대주세요</div>
+            <p class="text-xs font-bold text-green-900 mt-1 leading-relaxed">
+              못 찾겠다면 <span class="text-rose-600 font-black">'QR 코드'</span>라고 말씀하시거나<br>아래 QR 버튼을 눌러주세요.
+            </p>
+            <button onclick="openQrScanner()" class="mt-2 bg-green-700 hover:bg-green-800 text-white text-xs font-black px-4 py-2 rounded-xl shadow">
+              📷 QR 코드로 인식하기
+            </button>
+          </div>
+
+          <div class="bg-rose-100/90 p-3 rounded-2xl border border-rose-300 text-left">
+            <span class="text-xs font-black text-rose-950 block mb-1">💡 지원 매장 직접 선택:</span>
+            <div class="flex flex-wrap gap-1.5 text-xs font-bold text-rose-900">
+              <span onclick="renderCSVBrandMenu('메가커피')" class="bg-white px-2.5 py-1 rounded-lg border border-rose-200 cursor-pointer font-extrabold shadow-sm">메가커피</span>
+              <span onclick="renderCSVBrandMenu('이디야커피')" class="bg-white px-2.5 py-1 rounded-lg border border-rose-200 cursor-pointer font-extrabold shadow-sm">이디야커피</span>
+              <span onclick="renderCSVBrandMenu('맥도날드')" class="bg-white px-2.5 py-1 rounded-lg border border-rose-200 cursor-pointer font-extrabold shadow-sm">맥도날드</span>
+              <span onclick="renderCSVBrandMenu('노브랜드버거')" class="bg-white px-2.5 py-1 rounded-lg border border-rose-200 cursor-pointer font-extrabold shadow-sm">노브랜드버거</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function openQrScanner() {
+      document.getElementById('qrScanModal').classList.remove('hidden');
+      document.getElementById('qrScanStatusText').innerText = "📷 카메라 연결 중...";
+      speak("카메라에 매장의 QR 코드를 비춰주세요.");
+
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+          const videoEl = document.getElementById('qrCameraVideo');
+          videoEl.srcObject = cameraStream;
+          document.getElementById('qrScanStatusText').innerText = "🔍 QR 코드를 사각형 안에 맞춰주세요";
+        }
+      } catch (err) {
+        document.getElementById('qrScanStatusText').innerText = "⚠️ 카메라 연결 실패. 아래 시연용 버튼을 누르세요.";
+      }
+    }
+
+    function closeQrScanner() {
+      if (cameraStream) {
+        try { cameraStream.getTracks().forEach(track => track.stop()); } catch(e){}
+        cameraStream = null;
+      }
+      document.getElementById('qrScanModal').classList.add('hidden');
+    }
+
+    function simulateQrRecognized(brandName) {
+      closeQrScanner();
+      speak(`${brandName} QR 코드가 인식되었습니다.`);
+      renderCSVBrandMenu(brandName);
+    }
+
+    function renderCSVBrandMenu(brandName) {
+      selectedData.brand = brandName;
+      currentStep = "NFC_MENU_SELECT";
+      
+      const brandMenus = (window.MENU_DB || []).filter(item => item.brand === brandName);
+
+      document.getElementById('aiStatus').innerText = `☕ ${brandName} 메뉴판`;
+      speak(`${brandName} 메뉴판입니다. 원하시는 메뉴를 담아주세요.`);
+
+      updateMenuAndCartUI(brandMenus);
+    }
+
+    function updateMenuAndCartUI(brandMenus) {
+      const menus = brandMenus || (window.MENU_DB || []).filter(item => item.brand === selectedData.brand);
+      const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="w-full text-left space-y-2 flex flex-col h-full justify-between">
+          <div>
+            <div class="flex justify-between items-center border-b border-rose-200 pb-1 mb-1">
+              <span class="text-base font-black text-rose-950">☕ ${selectedData.brand} 메뉴 목록</span>
+              <button onclick="startNfcOrderMode()" class="text-xs text-rose-800 font-bold">다른매장</button>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 max-h-[140px] overflow-y-auto">
+              ${menus.map(m => `
+                <div onclick="addToCart('${m.menu_name}', ${m.price})" class="bg-rose-50/80 p-2 rounded-xl border border-rose-300 cursor-pointer hover:bg-rose-100 flex flex-col justify-between active:scale-95 transition-transform shadow-sm">
+                  <div>
+                    <div class="font-black text-xs text-rose-950 break-keep">${m.menu_name}</div>
+                    <div class="text-[10px] font-bold text-rose-800">${m.easy_name}</div>
+                  </div>
+                  <div class="text-xs font-black text-red-600 mt-1">${m.price.toLocaleString()}원 <span class="text-[10px] text-rose-900 bg-rose-200 px-1 rounded font-black">+담기</span></div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="bg-rose-100 p-2.5 rounded-2xl border-2 border-rose-300 mt-1 shadow-sm">
+            <div class="flex justify-between items-center mb-1 border-b border-rose-300 pb-1">
+              <span class="font-black text-xs text-rose-950">🛒 장바구니 (${totalQty}개)</span>
+              ${cart.length > 0 ? `<button onclick="clearCart()" class="text-[10px] text-red-600 font-bold">전체비우기</button>` : ''}
+            </div>
+
+            <div class="max-h-[80px] overflow-y-auto space-y-1 mb-1">
+              ${cart.length === 0 
+                ? '<div class="text-center text-xs font-bold text-gray-500 py-2">메뉴를 누르시거나 말씀해서 담아주세요.</div>'
+                : cart.map((item, idx) => `
+                  <div class="flex justify-between items-center bg-white p-1.5 rounded-lg border text-xs">
+                    <span class="font-bold text-rose-950 truncate max-w-[110px]">${item.name}</span>
+                    <div class="flex items-center gap-1">
+                      <button onclick="changeQty(${idx}, -1)" class="w-5 h-5 bg-rose-200 text-rose-950 rounded font-black flex items-center justify-center">-</button>
+                      <span class="font-black text-xs px-1">${item.qty}</span>
+                      <button onclick="changeQty(${idx}, 1)" class="w-5 h-5 bg-rose-200 text-rose-950 rounded font-black flex items-center justify-center">+</button>
+                      <span class="font-black text-red-600 ml-1">${(item.price * item.qty).toLocaleString()}원</span>
+                      <button onclick="removeItem(${idx})" class="text-gray-400 font-bold ml-1">✕</button>
+                    </div>
+                  </div>
+                `).join('')}
+            </div>
+
+            ${cart.length > 0 ? `
+              <button onclick="submitCartPayment()" class="w-full bg-rose-600 hover:bg-rose-700 text-white p-2.5 rounded-xl font-black text-sm shadow flex justify-between items-center">
+                <span>🛒 총 ${totalQty}개 결제하기</span>
+                <span>${totalAmount.toLocaleString()}원 ➔</span>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function addToCart(menuName, price) {
+      const existing = cart.find(item => item.name === menuName);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cart.push({ name: menuName, price: price, qty: 1 });
+      }
+      speak(`${menuName} 1개를 담았습니다.`);
+      updateMenuAndCartUI();
+    }
+
+    function changeQty(index, delta) {
+      cart[index].qty += delta;
+      if (cart[index].qty <= 0) {
+        cart.splice(index, 1);
+      }
+      updateMenuAndCartUI();
+    }
+
+    function removeItem(index) {
+      cart.splice(index, 1);
+      updateMenuAndCartUI();
+    }
+
+    function clearCart() {
+      cart = [];
+      updateMenuAndCartUI();
+      speak("장바구니를 비웠습니다.");
+    }
+
+    function submitCartPayment() {
+      if (cart.length === 0) return;
+      selectedData.isStoreOrder = true;
+      const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const summaryText = cart.map(i => `${i.name}. ${i.qty}잔`).join(', ');
+      
+      showConfirmation(`[${selectedData.brand} (강남역점)]`, summaryText, `${totalAmount.toLocaleString()}원`);
+    }
+
+    function parseKoreanNumber(text) {
+      if (!text) return 0;
+      if (text.includes("한") || text.includes("일") || text.includes("하나")) return 1;
+      if (text.includes("두") || text.includes("이") || text.includes("둘")) return 2;
+      if (text.includes("세") || text.includes("삼") || text.includes("셋")) return 3;
+      if (text.includes("네") || text.includes("사") || text.includes("넷")) return 4;
+      if (text.includes("다섯") || text.includes("오")) return 5;
+      
+      const numMatch = text.match(/\d+/);
+      return numMatch ? parseInt(numMatch[0], 10) : 0;
+    }
+
+    function parseBaseballAudience(input) {
+      let adult = 0;
+      let youth = 0;
+      let child = 0;
+
+      const adultPart = input.match(/(성인|어른|일반)\s*([0-9|한|두|세|네|다섯|일|이|삼|사|오|하나|둘|셋|넷]+)\s*명?/) || 
+                        input.match(/([0-9|한|두|세|네|다섯|일|이|삼|사|오|하나|둘|셋|넷]+)\s*명?\s*(성인|어른|일반)/);
+      if (adultPart) {
+        const numStr = adultPart[1].match(/(성인|어른|일반)/) ? adultPart[2] : adultPart[1];
+        adult = parseKoreanNumber(numStr);
+      }
+
+      const youthPart = input.match(/(청소년|학생|중고등)\s*([0-9|한|두|세|네|다섯|일|이|삼|사|오|하나|둘|셋|넷]+)\s*명?/) || 
+                        input.match(/([0-9|한|두|세|네|다섯|일|이|삼|사|오|하나|둘|셋|넷]+)\s*명?\s*(청소년|학생|중고등)/);
+      if (youthPart) {
+        const numStr = youthPart[1].match(/(청소년|학생|중고등)/) ? youthPart[2] : youthPart[1];
+        youth = parseKoreanNumber(numStr);
+      }
+
+      const childPart = input.match(/(어린이|아이|유아)\s*([0-9|한|두|세|네|다섯|일|이|삼|사|오|하나|둘|셋|넷]+)\s*명?/) || 
+                        input.match(/([0-9|한|두|세|네|다섯|일|이|삼|사|오|하나|둘|셋|넷]+)\s*명?\s*(어린이|아이|유아)/);
+      if (childPart) {
+        const numStr = childPart[1].match(/(어린이|아이|유아)/) ? childPart[2] : childPart[1];
+        child = parseKoreanNumber(numStr);
+      }
+
+      if (adult === 0 && youth === 0 && child === 0) {
+        const simpleNum = parseKoreanNumber(input);
+        adult = simpleNum > 0 ? simpleNum : 1;
+      }
+
+      let summary = [];
+      let totalPrice = 0;
+
+      if (adult > 0) { summary.push(`성인 ${adult}명`); totalPrice += adult * 15000; }
+      if (youth > 0) { summary.push(`청소년 ${youth}명`); totalPrice += youth * 10000; }
+      if (child > 0) { summary.push(`어린이 ${child}명`); totalPrice += child * 7000; }
+
+      return {
+        text: summary.join(', '),
+        totalPrice: totalPrice > 0 ? totalPrice : 15000
+      };
+    }
+
+    async function handleBusApiBooking(inputText) {
+      document.getElementById('aiStatus').innerText = "🚌 고속버스 정보 확인 중...";
+      speak("고속버스 운행 정보를 확인하고 있습니다.");
+
+      if (typeof getExpressBusSchedule === 'function') {
+        const busData = await getExpressBusSchedule(inputText);
+        const busDate = parseSimpleDateText(inputText);
+        
+        showConfirmation(
+          `[고속버스 예매]`,
+          `📅 날짜: ${busDate}\n📍 ${busData.depTerminal} ➔ ${busData.arrTerminal}\n🕒 ${busData.time} (${busData.grade})`,
+          `${busData.charge.toLocaleString()}원`
+        );
+        return;
+      }
+    }
+
+    function renderFailureScreen(reasonMessage) {
+      const reason = reasonMessage || "선택하신 좌석이 매진되었거나 시스템 오류가 발생했습니다.";
+      
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="text-center bg-red-100/90 p-5 rounded-3xl border-2 border-red-400 w-full shadow-md">
+          <div class="text-5xl mb-2">❌</div>
+          <div class="text-xl font-black text-red-950 mb-1">예매에 실패했습니다</div>
+          <p class="text-xs font-bold text-red-800 mb-4 leading-relaxed bg-white p-3 rounded-2xl border border-red-200">
+            ${reason}<br>잠시 후 다시 시도해 주세요.
+          </p>
+          <div class="flex gap-2">
+            <button onclick="startVoiceBookingMode()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-sm shadow">
+              🔄 다시 예매하기
+            </button>
+            <button onclick="goHome()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 rounded-xl text-sm shadow">
+              🏠 처음으로
+            </button>
+          </div>
+        </div>
+      `;
+
+      speak(`죄송합니다. ${reason} 예매에 실패했습니다. 다시 시도해 주세요.`);
+    }
+
+    // --- [음성 통합 엔진] ---
+    function processVoiceCommand(rawInput) {
+      let input = String(rawInput || "").trim();
+      input = input.replace(/테이블\s*적|테이블\s*척|테이블\s*섹/g, "테이블석");
+
+      console.log(`현재단계: ${currentStep}, 보정입력: ${input}`);
+
+      if (currentStep === "REGISTER_1") {
+        const phoneMatch = input.match(/\d{3,4}[-\s]?\d{4}[-\s]?\d{4}/) || input.match(/\d{10,11}/);
+        if (phoneMatch) {
+          const rawPhone = phoneMatch[0].replace(/[^0-9]/g, '');
+          const formattedPhone = `${rawPhone.slice(0,3)}-${rawPhone.slice(3,7)}-${rawPhone.slice(7,11)}`;
+          document.getElementById('inputPhone').value = formattedPhone;
+          const nameVal = input.replace(/[\d-\s]/g, '').trim();
+          if (nameVal) document.getElementById('inputName').value = nameVal;
+        } else {
+          document.getElementById('inputName').value = input;
+        }
+        submitRegisterStep1();
+        return;
+      }
+
+      if (currentStep === "REGISTER_2" && (input.includes("완료") || input.includes("했어"))) { completeARSAuth(); return; }
+      if (currentStep === "REGISTER_3" && (input.includes("카메라") || input.includes("스캔") || input.includes("비추"))) { openCardScanner(); return; }
+      if (currentStep === "REGISTER_3" && (input.includes("등록") || input.includes("시작"))) { finishRegistration(); return; }
+
+      // 🎯 [최종 결제/예약 확인창] 음성 네 / 아니오 판별
+      if (!document.getElementById('confirmationBox').classList.contains('hidden')) {
+        if (input.includes("네") || input.includes("응") || input.includes("결제") || input.includes("진행") || input.includes("해줘") || input.includes("맞아") || input.includes("좋아") || input.includes("예약")) {
+          executePayment();
+          return;
+        }
+        if (input.includes("아니") || input.includes("취소") || input.includes("다시") || input.includes("안해")) {
+          cancelOrder();
+          return;
+        }
+      }
+
+      if (currentStep === "HOME") {
+        if (input.includes("예매")) { startVoiceBookingMode(); return; }
+        if (input.includes("키오스크") || input.includes("주문") || input.includes("태그") || input.includes("결제") || input.includes("NFC")) { startNfcOrderMode(); return; }
+        if (input.includes("기타") || input.includes("문의")) { startOtherInquiryMode(); return; }
+      }
+
+      if (currentStep === "OTHER_INQUIRY") {
+        if (input.includes("주문") || input.includes("내역") || input.includes("확인") || input.includes("조회")) {
+          showOrderHistory();
+          return;
+        }
+        if (input.includes("카드") || input.includes("재등록") || input.includes("등록") || input.includes("바꾸")) {
+          renderRegisterStep3Card();
+          return;
+        }
+      }
+
+      if (currentStep === "NFC_ASK_STORE") {
+        if (input.includes("큐알") || input.includes("QR") || input.includes("코드")) {
+          openQrScanner();
+          return;
+        }
+        if (input.includes("메가")) { renderCSVBrandMenu("메가커피"); return; }
+        if (input.includes("이디야")) { renderCSVBrandMenu("이디야커피"); return; }
+        if (input.includes("맥도날드")) { renderCSVBrandMenu("맥도날드"); return; }
+        if (input.includes("노브랜드")) { renderCSVBrandMenu("노브랜드버거"); return; }
+      }
+
+      if (currentStep === "NFC_MENU_SELECT") {
+        if (input.includes("결제") || input.includes("주문해줘")) {
+          submitCartPayment();
+          return;
+        }
+        const brandMenus = (window.MENU_DB || []).filter(item => item.brand === selectedData.brand);
+        let matched = brandMenus.find(m => m.keywords.some(k => input.includes(k)) || input.includes(m.menu_name));
+        if (matched) {
+          addToCart(matched.menu_name, matched.price);
+          return;
+        }
+      }
+
+      if (currentStep === "VOICE_START") {
+        if (input.includes("야구") || input.includes("야구장")) {
+          currentStep = "BASEBALL_ASK_STADIUM";
+          speak("어느 야구장으로 해드릴까요?");
+          showGuideText("🏟️ '광주 야구장' 또는 '잠실 야구장'처럼 말씀해 주세요.");
+          return;
+        }
+        if (input.includes("영화")) {
+          currentStep = "MOVIE_ASK_TITLE";
+          speak("어떤 영화를 예매할까요?");
+          showGuideText("🎬 '파묘2' 또는 '범죄도시'라고 말씀해 주세요.");
+          return;
+        }
+        if (input.includes("식당") || input.includes("예약") || input.includes("캐치")) {
+          currentStep = "CATCHTABLE_ASK_NAME";
+          speak("예약하실 식당 이름을 말씀해 주세요.");
+          showGuideText("🍽️ '한일관' 또는 '가보정'이라고 말씀해 주세요.");
+          return;
+        }
+        if (input.includes("버스") || input.includes("기차") || input.includes("표")) {
+          currentStep = "BUS_ASK_ROUTE";
+          speak("어디로 가는 버스를 예매할까요? 출발지와 목적지, 시간을 말씀해 주세요.");
+          showGuideText("🚌 '내일 오후 2시 서울에서 부산'처럼 말씀해 주세요.");
+          return;
+        }
+      }
+
+      // 🎯 [1. 야구장 예매]
+      if (currentStep === "BASEBALL_ASK_STADIUM") {
+        const gameInfo = typeof findKboGameSchedule === 'function' ? findKboGameSchedule(input, "오늘") : { stadium: `${input} 야구장`, homeTeam: "홈팀", awayTeam: "원정팀" };
+        selectedData.stadium = gameInfo.stadium;
+        selectedData.homeTeam = gameInfo.homeTeam;
+        selectedData.awayTeam = gameInfo.awayTeam;
+
+        currentStep = "BASEBALL_ASK_DATE";
+        speak(`${gameInfo.stadium}을 선택하셨습니다. 관람하실 날짜를 말씀해 주세요.`);
+        showGuideText(`📅 '오늘', '내일' 또는 원하시는 관람 날짜를 말씀해 주세요.`);
+        return;
+      }
+
+      if (currentStep === "BASEBALL_ASK_DATE") {
+        const gameInfo = typeof findKboGameSchedule === 'function' ? findKboGameSchedule(selectedData.stadium, input) : { dateStr: parseSimpleDateText(input), gameTime: "18:30", matchup: "홈 vs 원정" };
+        selectedData.gameDate = gameInfo.dateStr;
+        selectedData.gameTime = gameInfo.gameTime;
+        selectedData.matchup = gameInfo.matchup;
+
+        currentStep = "BASEBALL_ASK_TEAM_SIDE";
+        speak(`${gameInfo.dateStr} ${gameInfo.gameTime} ${gameInfo.matchup} 경기입니다. 홈팀 응원석과 원정팀 응원석 중 어디로 해드릴까요?`);
+        showGuideText(`⚾ '${gameInfo.homeTeam || '홈'}' 또는 '${gameInfo.awayTeam || '원정'}' 응원석을 말씀해 주세요.`);
+        return;
+      }
+
+      if (currentStep === "BASEBALL_ASK_TEAM_SIDE") {
+        selectedData.teamSide = input.includes("원정") ? "원정팀 응원석(3루)" : "홈팀 응원석(1루)";
+        currentStep = "BASEBALL_ASK_SEAT_TYPE";
+        speak(`${selectedData.teamSide}으로 선택하셨습니다.`);
+        showGuideText(`💺 '응원지정석', '테이블석', '외야석' 중 말씀해 주세요.`);
+        return;
+      }
+
+      if (currentStep === "BASEBALL_ASK_SEAT_TYPE") {
+        selectedData.seatType = input;
+        currentStep = "BASEBALL_ASK_PEOPLE";
+        speak(`관람하실 인원을 말씀해 주세요.`);
+        showGuideText(`👥 '성인 1명 청소년 1명', '어른 2명'처럼 말씀해 주세요.`);
+        return;
+      }
+
+      if (currentStep === "BASEBALL_ASK_PEOPLE") {
+        const audienceInfo = parseBaseballAudience(input);
+        selectedData.audience = audienceInfo.text;
+        selectedData.price = audienceInfo.totalPrice;
+
+        showConfirmation(
+          `[야구장 예매]`,
+          `🏟️ ${selectedData.stadium}\n📅 ${selectedData.gameDate} (${selectedData.gameTime})\n⚔️ ${selectedData.matchup}\n💺 ${selectedData.teamSide} ${selectedData.seatType}\n👥 ${selectedData.audience}`,
+          `${selectedData.price.toLocaleString()}원`
+        );
+        return;
+      }
+
+      // 🎯 [2. 영화 예매]
+      if (currentStep === "MOVIE_ASK_TITLE") {
+        selectedData.movie = input;
+        currentStep = "MOVIE_ASK_DATE";
+        speak(`${input} 영화를 선택하셨습니다. 언제 관람하시겠습니까?`);
+        showGuideText(`📅 '${input}' 영화를 보실 날짜(예: 오늘, 내일)를 말씀해 주세요.`);
+        return;
+      }
+
+      if (currentStep === "MOVIE_ASK_DATE") {
+        selectedData.movieDate = parseSimpleDateText(input);
+        currentStep = "MOVIE_ASK_LOCATION";
+        speak(`${selectedData.movieDate}로 선택하셨습니다. 어느 영화관에서 보시겠습니까?`);
+        showGuideText(`📍 보실 영화관(예: 용산, 강남)을 말씀해 주세요.`);
+        return;
+      }
+
+      if (currentStep === "MOVIE_ASK_LOCATION") {
+        selectedData.movieLocation = input.includes("영화관") || input.includes("CGV") || input.includes("롯데") 
+          ? input 
+          : `${input} CGV`;
+        currentStep = "MOVIE_ASK_TIME";
+        speak(`${selectedData.movieLocation}을 선택하셨습니다. 상영 시간을 말씀해 주세요.`);
+        showGuideText(`🕒 '${selectedData.movieLocation}'의 상영시간(예: 오후 1시)을 말씀해 주세요.`);
+        return;
+      }
+
+      if (currentStep === "MOVIE_ASK_TIME") {
+        selectedData.movieTime = input;
+        showConfirmation(
+          `[영화 예매]`,
+          `🎬 ${selectedData.movie}\n📅 ${selectedData.movieDate} ${selectedData.movieTime}\n📍 ${selectedData.movieLocation}\n💺 중앙 우수좌석 (성인 2매)`,
+          `28,000원`
+        );
+        return;
+      }
+
+      // 🎯 [3. 식당 예약] - 결제창 없이 바로 예약 완료 처리
+      if (currentStep === "CATCHTABLE_ASK_NAME") {
+        selectedData.restaurantName = input;
+        currentStep = "CATCHTABLE_ASK_DATE";
+        speak(`${input} 식당을 선택하셨습니다. 예약하실 날짜를 말씀해 주세요.`);
+        showGuideText(`📅 '${input}' 예약 날짜(예: 오늘, 내일)를 말씀해 주세요.`);
+        return;
+      }
+
+      if (currentStep === "CATCHTABLE_ASK_DATE") {
+        selectedData.restaurantDate = parseSimpleDateText(input);
+        currentStep = "CATCHTABLE_ASK_PEOPLE";
+        speak(`${selectedData.restaurantDate}로 선택하셨습니다. 예약하실 인원을 말씀해 주세요.`);
+        showGuideText(`👥 예약 인원(예: 성인 2명, 어린이 1명)을 말씀해 주세요.`);
+        return;
+      }
+
+      if (currentStep === "CATCHTABLE_ASK_PEOPLE") {
+        const audienceInfo = parseBaseballAudience(input);
+        selectedData.audience = audienceInfo.text;
+
+        executeRestaurantReservation();
+        return;
+      }
+
+      // 🎯 [4. 버스 예매]
+      if (currentStep === "BUS_ASK_ROUTE") {
+        handleBusApiBooking(input);
+        return;
+      }
+
+      speak("잘 알아듣지 못했어요. 마이크를 누르시고 다시 말씀해 주세요.");
+    }
+
+    function executeRestaurantReservation() {
+      document.getElementById('aiStatus').innerText = "🍽️ 식당 예약 처리 중...";
+      speak(`${selectedData.restaurantName} 식당에 ${selectedData.restaurantDate} ${selectedData.audience} 예약 신청을 완료했습니다.`, () => {
+        document.getElementById('dynamicContent').innerHTML = `
+          <div class="text-center bg-rose-100/90 p-5 rounded-3xl border-2 border-rose-400 w-full shadow-md space-y-2">
+            <div class="text-5xl mb-1">🍽️</div>
+            <div class="text-xl font-black text-rose-950">식당 예약 신청 완료!</div>
+            <div class="bg-white p-3 rounded-2xl border border-rose-200 text-left text-xs font-bold text-gray-800 space-y-1">
+              <div>📍 식당: <span class="font-black text-rose-950">${selectedData.restaurantName}</span></div>
+              <div>📅 일시: ${selectedData.restaurantDate}</div>
+              <div>👥 인원: ${selectedData.audience}</div>
+            </div>
+            <p class="text-xs font-bold text-rose-800">카카오톡 또는 문자로 예약 확인 안내가 발송됩니다.</p>
+            <button onclick="goHome()" class="mt-2 bg-rose-600 text-white font-bold px-4 py-3 rounded-xl text-sm shadow w-full">홈으로 가기</button>
+          </div>
+        `;
+      });
+    }
+
+    function showGuideText(text) {
+      document.getElementById('dynamicContent').innerHTML = `
+        <div class="w-full text-center space-y-4 py-6">
+          <div class="text-6xl pulse-animation inline-block p-4 bg-rose-100 rounded-full border-2 border-rose-400">🎤</div>
+          <div class="text-lg font-black text-rose-950">${text}</div>
+        </div>
+      `;
+    }
+
+    function showConfirmation(title, detail, price) {
+      document.getElementById('confirmTitle').innerText = title;
+      document.getElementById('confirmDetail').innerText = detail;
+      document.getElementById('confirmPrice').innerText = price;
+      
+      document.getElementById('dynamicArea').classList.add('hidden');
+      document.getElementById('confirmationBox').classList.remove('hidden');
+
+      speak(`${title} ${detail}. 총 ${price} 입니다. 결제하시려면 네 라고 말씀해 주세요.`);
+    }
+
+    function hideConfirmation() {
+      document.getElementById('confirmationBox').classList.add('hidden');
+      document.getElementById('dynamicArea').classList.remove('hidden');
+    }
+
+    function cancelOrder() {
+      hideConfirmation();
+      speak("취소되었습니다. 다시 편안하게 말씀해 주세요.");
+    }
+
+    function executePayment() {
+      const title = document.getElementById('confirmTitle').innerText;
+      const detail = document.getElementById('confirmDetail').innerText;
+      const price = document.getElementById('confirmPrice').innerText;
+
+      hideConfirmation();
+      document.getElementById('aiStatus').innerText = "🔍 결제 진행 중...";
+
+      const now = new Date();
+      const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      orderHistory.unshift({
+        date: dateStr,
+        brand: title,
+        detail: detail,
+        price: price
+      });
+      localStorage.setItem('order_history_v1', JSON.stringify(orderHistory));
+
+      speak("주문하신 건을 안전하게 결제 처리합니다.", () => {
+        setTimeout(() => {
+          if (selectedData.isStoreOrder) {
+            const orderNum = Math.floor(Math.random() * 900) + 100;
+            const orderNumKorean = numberToKorean(orderNum);
+            
+            document.getElementById('dynamicContent').innerHTML = `
+              <div class="text-center bg-rose-100/90 p-5 rounded-3xl border-2 border-rose-400 w-full space-y-2 shadow-md">
+                <div class="text-xs font-black text-rose-900 bg-rose-200 px-3 py-1 rounded-full inline-block">✅ 결제 완료</div>
+                <div class="text-sm font-bold text-gray-700 mt-1">${selectedData.brand || '매장'} 주문 번호표</div>
+                <div class="text-6xl font-black text-red-600 tracking-wider my-2 bg-white p-3 rounded-2xl border-2 border-red-300 shadow-inner">${orderNum}번</div>
+                <p class="text-xs font-bold text-rose-950 leading-relaxed bg-white p-2.5 rounded-xl border border-rose-200">
+                  📢 매장 화면에 <span class="text-red-600 font-black text-sm">${orderNum}번</span>이 떠오르면<br>음식을 받으러 가시면 됩니다!
+                </p>
+                <button onclick="goHome()" class="mt-2 bg-rose-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow w-full">홈으로 가기</button>
+              </div>
+            `;
+            
+            speak(`결제가 완료되었습니다! 주문 번호는 ${orderNumKorean} 번입니다. 매장 화면에 ${orderNum} 번이 뜨면 음식을 받아가시면 됩니다.`);
+          } else {
+            document.getElementById('dynamicContent').innerHTML = `
+              <div class="text-center bg-rose-100/90 p-5 rounded-3xl border-2 border-rose-400 w-full shadow-md">
+                <div class="text-5xl mb-2">✅</div>
+                <div class="text-xl font-black text-rose-950 mb-1">처리가 완료되었습니다!</div>
+                <p class="text-xs font-bold text-rose-800 mb-3">예약 상세 정보가 스마트폰으로 전송되었습니다.</p>
+                <button onclick="goHome()" class="mt-2 bg-rose-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow">홈으로 가기</button>
+              </div>
+            `;
+            speak("결제가 성공적으로 완료되었습니다!");
+          }
+
+          cart = [];
+          selectedData.isStoreOrder = false;
+        }, 1000);
+      });
+    }
+  </script>
+</body>
+</html>
