@@ -1,4 +1,4 @@
-// kbo_schedule.js - 1주일간 KBO 일정 동적 생성 및 검색 모듈
+// kbo_schedule.js - KBO 일정 동적 생성 및 날짜 파싱 모듈
 
 // 오늘 날짜 기준 YYYY-MM-DD 스트링 생성
 function getFormattedDate(offsetDays = 0) {
@@ -23,29 +23,75 @@ const STADIUM_MATCHUPS = [
   { stadium: "창원 NC파크", home: "NC 다이노스", away: "LG 트윈스", time: "18:00", keywords: ["창원", "마산", "엔씨"] }
 ];
 
-// 음성 텍스트에서 날짜 오프셋(일수) 추출
-function parseDateOffsetFromText(text) {
-  if (!text) return 0;
-  if (text.includes("오늘")) return 0;
-  if (text.includes("내일")) return 1;
-  if (text.includes("모레")) return 2;
-  if (text.includes("글피")) return 3;
+// 음성 텍스트에서 날짜 오프셋(일수) 또는 직접 지정 날짜 파싱
+function parseTargetDateFromText(text) {
+  const str = String(text || "").trim();
+  const now = new Date();
 
-  // "X일 뒤", "X일 후"
-  const dayMatch = text.match(/(\d{1,2})\s*일\s*(뒤|후)?/);
-  if (dayMatch) {
-    const dayNum = parseInt(dayMatch[1], 10);
-    if (dayNum >= 1 && dayNum <= 7) return dayNum;
+  // 1. "X월 Y일" 형태 직접 언급 처리 (예: "8월 10일")
+  const monthDayMatch = str.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+  if (monthDayMatch) {
+    const month = parseInt(monthDayMatch[1], 10);
+    const day = parseInt(monthDayMatch[2], 10);
+    const targetDate = new Date(now.getFullYear(), month - 1, day);
+    
+    // 이미 지난 달이면 내년으로 보정
+    if (targetDate < new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)) {
+      targetDate.setFullYear(now.getFullYear() + 1);
+    }
+    return {
+      dateStr: `${month}월 ${day}일`,
+      fullDate: `${targetDate.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    };
   }
 
-  return 0; // 기본 오늘
+  // 2. "Y일" 형태 단독 처리 (예: "10일")
+  const dayOnlyMatch = str.match(/(\d{1,2})\s*일/);
+  if (dayOnlyMatch && !str.includes("뒤") && !str.includes("후")) {
+    const day = parseInt(dayOnlyMatch[1], 10);
+    let month = now.getMonth() + 1;
+    if (day < now.getDate()) {
+      month += 1; // 오늘 날짜보다 작은 일수면 다음 달로 간주
+    }
+    return {
+      dateStr: `${month}월 ${day}일`,
+      fullDate: `${now.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    };
+  }
+
+  // 3. 상대적 날짜 표현 처리 (내일모레/모레를 내일보다 먼저 처리)
+  let offset = 0;
+  if (str.includes("글피")) {
+    offset = 3;
+  } else if (str.includes("모레") || str.includes("내일모레") || str.includes("내일 모레")) {
+    offset = 2;
+  } else if (str.includes("내일")) {
+    offset = 1;
+  } else if (str.includes("오늘")) {
+    offset = 0;
+  } else {
+    // "X일 뒤", "X일 후"
+    const relativeMatch = str.match(/(\d{1,2})\s*일\s*(뒤|후)/);
+    if (relativeMatch) {
+      offset = parseInt(relativeMatch[1], 10);
+    }
+  }
+
+  const target = new Date();
+  target.setDate(target.getDate() + offset);
+  const monthStr = target.getMonth() + 1;
+  const dayStr = target.getDate();
+
+  return {
+    dateStr: `${monthStr}월 ${dayStr}일`,
+    fullDate: `${target.getFullYear()}-${String(monthStr).padStart(2, '0')}-${String(dayStr).padStart(2, '0')}`
+  };
 }
 
 // KBO 경기 일정 검색 (구장 + 날짜)
 function findKboGameSchedule(stadiumInput, dateInput) {
   const stadiumText = String(stadiumInput || "").trim();
-  const dateOffset = parseDateOffsetFromText(dateInput || stadiumInput);
-  const targetDate = getFormattedDate(dateOffset);
+  const dateResult = parseTargetDateFromText(dateInput || stadiumInput);
 
   // 구장 매칭
   let matchedStadium = STADIUM_MATCHUPS[0];
@@ -56,14 +102,9 @@ function findKboGameSchedule(stadiumInput, dateInput) {
     }
   }
 
-  // 월/일 변환
-  const dateObj = new Date();
-  dateObj.setDate(dateObj.getDate() + dateOffset);
-  const displayDateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
-
   return {
-    dateStr: displayDateStr,
-    fullDate: targetDate,
+    dateStr: dateResult.dateStr,
+    fullDate: dateResult.fullDate,
     stadium: matchedStadium.stadium,
     homeTeam: matchedStadium.home,
     awayTeam: matchedStadium.away,
