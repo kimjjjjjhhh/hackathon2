@@ -201,6 +201,16 @@
       };
     }
 
+    // 🎯 [복구] 페이지 초기화 로드 핸들러
+    window.onload = function() {
+      if (!userProfile) {
+        renderRegisterStep1();
+      } else {
+        updateHeaderUser();
+        goHome();
+      }
+    };
+
     function toggleSpeech() {
       if (!recognition) {
         alert("이 브라우저는 음성 인식을 지원하지 않습니다. 크롬 브라우저를 이용해 주세요.");
@@ -275,44 +285,41 @@
       return result || '영';
     }
 
-    // 🎯 날짜 오프셋 파싱 고도화 (오늘, 내일, 모레, X일 뒤 등)
+    // 🎯 날짜 오프셋 파싱 고도화
     function parseSimpleDateText(input) {
-  const text = String(input || "").trim();
-  const now = new Date();
+      const text = String(input || "").trim();
+      const now = new Date();
 
-  // "8월 10일" 같이 월/일 직접 언급 시
-  const monthDayMatch = text.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
-  if (monthDayMatch) {
-    return `${parseInt(monthDayMatch[1], 10)}월 ${parseInt(monthDayMatch[2], 10)}일`;
-  }
+      const monthDayMatch = text.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+      if (monthDayMatch) {
+        return `${parseInt(monthDayMatch[1], 10)}월 ${parseInt(monthDayMatch[2], 10)}일`;
+      }
 
-  // "10일" 같이 일만 언급 시
-  const dayOnlyMatch = text.match(/(\d{1,2})\s*일/);
-  if (dayOnlyMatch && !text.includes("뒤") && !text.includes("후")) {
-    const day = parseInt(dayOnlyMatch[1], 10);
-    let month = now.getMonth() + 1;
-    if (day < now.getDate()) month += 1;
-    return `${month}월 ${day}일`;
-  }
+      const dayOnlyMatch = text.match(/(\d{1,2})\s*일/);
+      if (dayOnlyMatch && !text.includes("뒤") && !text.includes("후")) {
+        const day = parseInt(dayOnlyMatch[1], 10);
+        let month = now.getMonth() + 1;
+        if (day < now.getDate()) month += 1;
+        return `${month}월 ${day}일`;
+      }
 
-  // 내일모레/모레를 내일보다 먼저 처리
-  let addDays = 0;
-  if (text.includes("글피")) {
-    addDays = 3;
-  } else if (text.includes("모레") || text.includes("내일모레") || text.includes("내일 모레")) {
-    addDays = 2;
-  } else if (text.includes("내일")) {
-    addDays = 1;
-  } else {
-    const dayMatch = text.match(/(\d{1,2})\s*일\s*(뒤|후)/);
-    if (dayMatch) {
-      addDays = parseInt(dayMatch[1], 10);
+      let addDays = 0;
+      if (text.includes("글피")) {
+        addDays = 3;
+      } else if (text.includes("모레") || text.includes("내일모레") || text.includes("내일 모레")) {
+        addDays = 2;
+      } else if (text.includes("내일")) {
+        addDays = 1;
+      } else {
+        const dayMatch = text.match(/(\d{1,2})\s*일\s*(뒤|후)/);
+        if (dayMatch) {
+          addDays = parseInt(dayMatch[1], 10);
+        }
+      }
+
+      now.setDate(now.getDate() + addDays);
+      return `${now.getMonth() + 1}월 ${now.getDate()}일`;
     }
-  }
-
-  now.setDate(now.getDate() + addDays);
-  return `${now.getMonth() + 1}월 ${now.getDate()}일`;
-}
 
     function updateHeaderUser() {
       if (userProfile && userProfile.name) {
@@ -911,7 +918,6 @@
       };
     }
 
-    // 🎯 버스 예매 처리 시 전체 음성 input을 그대로 넘기도록 수정
     async function handleBusApiBooking(inputText) {
       document.getElementById('aiStatus').innerText = "🚌 고속버스 정보 확인 중...";
       speak("고속버스 운행 정보를 확인하고 있습니다.");
@@ -1262,9 +1268,9 @@
                 <div class="text-sm font-bold text-gray-700 mt-1">${selectedData.brand || '매장'} 주문 번호표</div>
                 <div class="text-6xl font-black text-red-600 tracking-wider my-2 bg-white p-3 rounded-2xl border-2 border-red-300 shadow-inner">${orderNum}번</div>
                 <p class="text-xs font-bold text-rose-950 leading-relaxed bg-white p-2.5 rounded-xl border border-rose-200">
-                  📢 매장 화면에 <span class="text-red-600 font-black text-sm">${orderNum}번</span>이 떠오르면<br>음식을 받으러 가하시면 됩니다!
+                  📢 매장 화면에 <span class="text-red-600 font-black text-sm">${orderNum}번</span>이 떠오르면<br>음식을 받으러 가시면 됩니다!
                 </p>
-                <button onclick="goHome()" class="mt-2 bg-rose-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow w-full">홈으로 가기</button>
+                <button onclick="goHome()" class="mt-2 bg-rose-600 text-white font-bold px-4 py-3 rounded-xl text-sm shadow w-full">홈으로 가기</button>
               </div>
             `;
             
@@ -1275,7 +1281,7 @@
                 <div class="text-5xl mb-2">✅</div>
                 <div class="text-xl font-black text-rose-950 mb-1">처리가 완료되었습니다!</div>
                 <p class="text-xs font-bold text-rose-800 mb-3">예약 상세 정보가 스마트폰으로 전송되었습니다.</p>
-                <button onclick="goHome()" class="mt-2 bg-rose-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow">홈으로 가기</button>
+                <button onclick="goHome()" class="mt-2 bg-rose-600 text-white font-bold px-4 py-3 rounded-xl text-sm shadow">홈으로 가기</button>
               </div>
             `;
             speak("결제가 성공적으로 완료되었습니다!");
